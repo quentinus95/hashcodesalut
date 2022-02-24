@@ -3,8 +3,6 @@ import os
 import sys
 from typing import Any, Union, List, Tuple, Dict
 
-OUTPUT_FILE = "output.txt"
-
 
 @dataclass(frozen=True)
 class Skill:
@@ -155,11 +153,8 @@ def load_input_data(input_file):
     return contributors, projects
 
 
-def generate_output_data(ordered_projects: List[Project]):
-    if os.path.exists(OUTPUT_FILE):
-        os.remove(OUTPUT_FILE)
-
-    with open(OUTPUT_FILE, 'w') as f:
+def generate_output_data(input_file_path: str, ordered_projects: List[Project]):
+    with open("output_data/" + input_file_path, 'w+') as f:
         f.write(str(len(ordered_projects)) + "\n")
         for project in ordered_projects:
             f.write(project.name + "\n")
@@ -173,7 +168,9 @@ if __name__ == "__main__":
 
     contributors, projects = load_input_data(input_file_path)
 
-    remaining_projects: List[Project] = projects
+    score_sorted_projects = sorted(projects, key=lambda project: project.score)
+
+    remaining_projects: List[Project] = score_sorted_projects
     assigned_projects: List[Project] = []
 
     remaining_projects_count = len(remaining_projects)
@@ -190,7 +187,4 @@ if __name__ == "__main__":
 
         remaining_projects_count = len(remaining_projects)
 
-    # This breaks the concept of skills "progression".
-    # assigned_sorted_projects = assigned_projects.sort(key=lambda project: project.score)
-
-    generate_output_data(assigned_projects)
+    generate_output_data(input_file_name, assigned_projects)
