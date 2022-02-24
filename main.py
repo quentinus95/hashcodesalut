@@ -86,6 +86,7 @@ def load_input_data(input_file):
 
 def generate_output_data(ordered_projects):
     with open('output.txt', 'w') as f:
+        f.write(len(ordered_projects) + "\n")
         for project in ordered_projects:
             f.write(project.name + "\n")
             assignees = " ".join(list(map(lambda the_role: the_role.assignee.name, project.roles)))
