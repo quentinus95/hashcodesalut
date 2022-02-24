@@ -4,6 +4,11 @@ import sys
 from typing import Any, Union, List, Tuple, Dict
 
 
+def log(string: str):
+    if "SILENT" not in os.environ:
+        print(string)
+
+
 @dataclass(frozen=True)
 class Skill:
     name: str
@@ -21,7 +26,7 @@ class Contributor:
 
         skill = self.skills[role.name]
         if skill.level < role.level:
-            print(f"{self.name} has skill {skill.name} but is not good enough ({skill.level} < {role.level})!")
+            log(f"{self.name} has skill {skill.name} but is not good enough ({skill.level} < {role.level})!")
 
             return None
 
@@ -30,7 +35,7 @@ class Contributor:
     def augment_skill(self, skill_name):
         previous_skill = self.skills[skill_name]
 
-        print(f"Increasing {self.name}'s skill {skill_name} from {previous_skill.level} to {previous_skill.level + 1}")
+        log(f"Increasing {self.name}'s skill {skill_name} from {previous_skill.level} to {previous_skill.level + 1}")
 
         self.skills[skill_name] = Skill(name=previous_skill.name, level=previous_skill.level + 1)
 
@@ -67,16 +72,16 @@ class Project:
 
                 if skill:
                     if contributor in busy_contributors:
-                        print(f"{contributor.name} is already involved in {project.name}; ignoring.")
+                        log(f"{contributor.name} is already involved in {project.name}; ignoring.")
                         continue
 
                     can_be_done = True
                     busy_contributors.append(contributor)
-                    print(f"### Electing {contributor} for role {role} on {project.name}")
+                    log(f"### Electing {contributor} for role {role} on {project.name}")
                     break
 
             if not can_be_done:
-                print(f"Could not find a contributor for role {role}!")
+                log(f"Could not find a contributor for role {role}!")
 
                 return False
 
@@ -154,7 +159,12 @@ def load_input_data(input_file):
 
 
 def generate_output_data(input_file_path: str, ordered_projects: List[Project]):
-    with open("output_data/" + input_file_path, 'w+') as f:
+    output_file = "output_data/" + input_file_path
+
+    if os.path.exists(output_file):
+        os.remove(output_file)
+
+    with open(output_file, 'w+') as f:
         f.write(str(len(ordered_projects)) + "\n")
         for project in ordered_projects:
             f.write(project.name + "\n")
@@ -168,7 +178,7 @@ if __name__ == "__main__":
 
     contributors, projects = load_input_data(input_file_path)
 
-    score_sorted_projects = sorted(projects, key=lambda project: project.score)
+    score_sorted_projects = sorted(projects, key=lambda project: project.score, reverse=True)
 
     remaining_projects: List[Project] = score_sorted_projects
     assigned_projects: List[Project] = []
