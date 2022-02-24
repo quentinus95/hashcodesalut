@@ -3,6 +3,7 @@ import os
 import sys
 from typing import Any, Union, List, Tuple, Dict
 
+OUTPUT_FILE = "output.txt"
 
 
 @dataclass(frozen=True)
@@ -54,7 +55,6 @@ class Project:
 
         return True
 
-
     def can_be_done_by_contributors(self, contributors: List[Contributor]) -> bool:
         for role in self.roles:
             can_be_done = False
@@ -70,7 +70,6 @@ class Project:
 
         return True
 
-
     def assign_contributors(self, contributors: List[Contributor]):
         for role in self.roles:
             for contributor in contributors:
@@ -82,7 +81,6 @@ class Project:
                     contributor.skills[improved_skill.name] = improved_skill
 
                     break
-
 
 
 def load_input_data(input_file):
@@ -138,9 +136,10 @@ def load_input_data(input_file):
 
 
 def generate_output_data(ordered_projects: List[Project]):
-    os.remove('output.txt')
+    if os.path.exists(OUTPUT_FILE):
+        os.remove(OUTPUT_FILE)
 
-    with open('output.txt', 'w') as f:
+    with open(OUTPUT_FILE, 'w') as f:
         f.write(str(len(ordered_projects)) + "\n")
         for project in ordered_projects:
             f.write(project.name + "\n")
