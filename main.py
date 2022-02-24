@@ -23,6 +23,8 @@ class Contributor:
 
         skill = self.skills[role.name]
         if skill.level < role.level:
+            print(f"{self.name} has skill {skill.name} but is not good enough ({skill.level} < {role.level})!")
+
             return None
 
         return skill
