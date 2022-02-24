@@ -172,4 +172,6 @@ if __name__ == "__main__":
 
         remaining_projects_count = len(remaining_projects)
 
+    assigned_sorted_projects = assigned_projects.sort(key=lambda project: project.score)
+
     generate_output_data(assigned_projects)
