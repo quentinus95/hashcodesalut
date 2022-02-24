@@ -93,9 +93,9 @@ class Project:
                         continue
 
                     role.assignee = (contributor, skill)
-                    improved_skill = Skill(name=skill.name, level=skill.level + 1)
 
-                    contributor.skills[improved_skill.name] = improved_skill
+                    if skill.level >= role.level:
+                        contributor.augment_skill(skill.name)
 
                     break
 
