@@ -1,14 +1,20 @@
 from dataclasses import dataclass, field
 import os
 import sys
-from typing import Any
+from typing import Any, Union
+
+
+@dataclass
+class Contributor:
+    name: Any
+    skills: Any = field(default_factory=list)
 
 
 @dataclass
 class Role:
     name: Any
     level: Any
-    assignee: Any = None
+    assignee: Union[Contributor, None] = None
 
 
 @dataclass
@@ -24,12 +30,6 @@ class Project:
     score: Any
     best_before: Any
     roles: Any = field(default_factory=list)
-
-
-@dataclass
-class Contributor:
-    name: Any
-    skills: Any = field(default_factory=list)
 
 
 def load_input_data(input_file):
@@ -86,8 +86,25 @@ def load_input_data(input_file):
 
 def score_projects(schedule):
     for project in schedule:
-        for roles in project.roles:
-            print(role)
+        contributors = []
+        for role in project.roles:
+            contributors += [role.assignee]
+        most_skilled_per_role = {}
+        for role in project.roles:
+            for contributor in contributors:
+                pass
+            most_skilled_per_role[role.name] = max()
+
+
+def generate_output_data(ordered_projects):
+    with open("output.txt", "w") as f:
+        f.write(str(len(ordered_projects)) + "\n")
+        for project in ordered_projects:
+            f.write(project.name + "\n")
+            assignees = " ".join(
+                list(map(lambda the_role: the_role.assignee.name, project.roles))
+            )
+            f.write(assignees + "\n")
 
 
 if __name__ == "__main__":
@@ -96,4 +113,11 @@ if __name__ == "__main__":
     input_file_name = os.path.basename(input_file_path)
 
     contributors, projects = load_input_data(input_file_path)
-    print(contributors, projects)
+    # print(contributors, projects)
+
+    for project in projects:
+        for role in project.roles:
+            role.assignee = contributors[0]
+
+    # generate_output_data(projects)
+    score_projects(projects)
