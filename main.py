@@ -60,6 +60,29 @@ class Project:
 
         return True
 
+    def can_be_done_by_contributors(self, contributors: List[Contributor]) -> bool:
+        for role in self.roles:
+            can_be_done = False
+            for contributor in contributors:
+                skill = contributor.skill_from_role(role)
+
+                if skill:
+                    can_be_done = True
+                    break
+
+            if not can_be_done:
+                return False
+
+        return True
+
+    def assign_contributors(self, contributors: List[Contributor]):
+        for role in self.roles:
+            for contributor in contributors:
+                skill = contributor.skill_from_role(role)
+                if skill:
+                    role.assignee = (contributor, skill)
+                    break
+
 
 def load_input_data(input_file):
     with open(input_file, "r") as f:
@@ -113,57 +136,6 @@ def load_input_data(input_file):
     return contributors, projects
 
 
-def score_projects(schedule):
-    for project in schedule:
-        contributors = []
-        for role in project.roles:
-            contributors += [role.assignee]
-        roles = {role.name: role for role in project.roles}
-        most_skilled_per_role = {role.name: None for role in project.roles}
-        for role in project.roles:
-            for contributor in contributors:
-                skill_level = contributor.get_skill_level(role.name)
-                if not most_skilled_per_role[
-                    role.name
-                ] or skill_level > most_skilled_per_role[role.name].get_skill_level(
-                    role.name
-                ):
-                    most_skilled_per_role[role.name] = contributor
-        # check if there is no assignee with level < skill - 1
-        for role in project.roles:
-            contributor_level = role.assignee.get_skill_level(role.name)
-            if contributor_level < role.level - 1:
-                print(
-                    f"Project {project.name}: skill of assignee for role {role.name} is too low. ({role.level} required, found {contributor_level} for {role.assignee.name})"
-                )
-                return 0
-
-        # check if low level assignee have a mentor
-        for role_name, contributor in most_skilled_per_role.items():
-            if roles[role_name].level - 1 == contributor.get_skill_level(role.name):
-                potential_mentor = most_skilled_per_role[role.name]
-                if (
-                    potential_mentor.get_skill_level(role.name)
-                    >= roles[role_name].level
-                ):
-                    print(f"{potential_mentor} is mentoring {contributor.name}.")
-                else:
-                    print(f"No mentor found for role {role.name}.")
-                    return 0
-
-
-def find_assignee_for_project_role(
-    contributors: List[Contributor], project: Project, role: Role
-) -> Union[Tuple[Contributor, Skill], None]:
-    for contributor in contributors:
-        skill = contributor.skill_from_role(role)
-
-        if skill:
-            return contributor, skill
-
-    return None
-
-
 def generate_output_data(ordered_projects: List[Project]):
     with open("output.txt", "w") as f:
         f.write(str(len(ordered_projects)) + "\n")
@@ -182,20 +154,17 @@ if __name__ == "__main__":
 
     contributors, projects = load_input_data(input_file_path)
 
-    for project in projects:
-        for role in project.roles:
-            role.assignee = find_assignee_for_project_role(contributors, project, role)
+    remaining_projects: List[Project] = projects
+    assigned_projects: List[Project] = []
 
-            if not role.assignee:
-                continue
+    while len(remaining_projects) > 0:
+        next_project = remaining_projects.pop()
 
-            assignee, skill = role.assignee
-            assignee.augment_skill(skill.name)
+        if next_project.can_be_done_by_contributors(contributors):
+            next_project.assign_contributors(contributors)
+            assigned_projects.append(next_project)
+        # else:
+        #    remaining_projects.append(next_project)
 
-    fully_assigned_projects = list(
-        filter(lambda the_project: the_project.is_fully_assigned(), projects)
-    )
-
-    # generate_output_data(projects)
-    print(fully_assigned_projects)
-    # score_projects(fully_assigned_projects)
+    # generate_output_data(assigned_projects)
+    print(assigned_projects)
