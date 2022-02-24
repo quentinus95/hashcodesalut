@@ -2,22 +2,27 @@ from asyncio import constants
 from dataclasses import dataclass, field
 import os
 import sys
-from types import TracebackType
-from typing import Any, Union, List
-from unittest import skipUnless
+from typing import Any, Union, List, Tuple, Dict
+
+
+@dataclass(frozen=True)
+class Skill:
+    name: str
+    level: int
 
 
 @dataclass
 class Contributor:
     name: Any
-    skills: Any = field(default_factory=list)
+    skills: Dict[str, Skill] = field(default_factory=dict)
 
-    def skill_from_role(self, role):
-        for skill in self.skills:
-            if skill.name == role.name and skill.level >= role.level:
-                return skill
+    def skill_from_role(self, role) -> Union[Skill, None]:
+        if role.name not in self.skills:
+            return None
 
-        return None
+        skill = self.skills[role.name]
+        if skill.level < role.level:
+            return None
 
     def get_skill_level(self, skill_name):
         for skill in self.skills:
@@ -25,27 +30,28 @@ class Contributor:
                 return skill.level
         return 0
 
+    def augment_skill(self, skill_name):
+        previous_skill = self.skills[skill_name]
+
+        self.skills[skill_name] = Skill(
+            name=previous_skill.name, level=previous_skill.level + 1
+        )
+
 
 @dataclass
 class Role:
-    name: Any
+    name: str
     level: int
-    assignee: Union[Contributor, None] = None
-
-
-@dataclass
-class Skill:
-    name: Any
-    level: Any
+    assignee: Union[Tuple[Contributor, Skill], None] = None
 
 
 @dataclass
 class Project:
-    name: Any
-    duration: Any
+    name: str
+    duration: int
     score: int
-    best_before: Any
-    roles: Any = field(default_factory=list)
+    best_before: int
+    roles: List[Role] = field(default_factory=list)
 
     def is_fully_assigned(self):
         for project_role in self.roles:
@@ -74,7 +80,7 @@ def load_input_data(input_file):
             skill_name, skill_lvl = lines[line_i].split(" ")
             skill_lvl = int(skill_lvl)
             skill = Skill(name=skill_name, level=skill_lvl)
-            contributor.skills.append(skill)
+            contributor.skills[skill.name] = skill
             line_i += 1
         contributors += [contributor]
 
@@ -148,23 +154,23 @@ def score_projects(schedule):
 
 def find_assignee_for_project_role(
     contributors: List[Contributor], project: Project, role: Role
-):
+) -> Union[Tuple[Contributor, Skill], None]:
     for contributor in contributors:
         skill = contributor.skill_from_role(role)
 
         if skill:
-            return contributor
+            return contributor, skill
 
     return None
 
 
-def generate_output_data(ordered_projects):
+def generate_output_data(ordered_projects: List[Project]):
     with open("output.txt", "w") as f:
         f.write(str(len(ordered_projects)) + "\n")
         for project in ordered_projects:
             f.write(project.name + "\n")
             assignees = " ".join(
-                list(map(lambda the_role: the_role.assignee.name, project.roles))
+                list(map(lambda the_role: the_role.assignee[0].name, project.roles))
             )
             f.write(assignees + "\n")
 
@@ -180,10 +186,16 @@ if __name__ == "__main__":
         for role in project.roles:
             role.assignee = find_assignee_for_project_role(contributors, project, role)
 
+            if not role.assignee:
+                continue
+
+            assignee, skill = role.assignee
+            assignee.augment_skill(skill.name)
+
     fully_assigned_projects = list(
         filter(lambda the_project: the_project.is_fully_assigned(), projects)
     )
 
     # generate_output_data(projects)
     print(fully_assigned_projects)
-    score_projects(fully_assigned_projects)
+    # score_projects(fully_assigned_projects)
