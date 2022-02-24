@@ -58,13 +58,21 @@ class Project:
         return True
 
     def can_be_done_by_contributors(self, contributors: List[Contributor]) -> bool:
+        busy_contributors: List[Contributor] = []
+
         for role in self.roles:
             can_be_done = False
             for contributor in contributors:
                 skill = contributor.skill_from_role(role)
 
                 if skill:
+                    if contributor in busy_contributors:
+                        print(f"{contributor.name} is already involved in {project.name}; ignoring.")
+                        continue
+
                     can_be_done = True
+                    busy_contributors.append(contributor)
+                    print(f"### Electing {contributor} for role {role} on {project.name}")
                     break
 
             if not can_be_done:
@@ -75,10 +83,15 @@ class Project:
         return True
 
     def assign_contributors(self, contributors: List[Contributor]):
+        busy_contributors: List[Contributor] = []
+
         for role in self.roles:
             for contributor in contributors:
                 skill = contributor.skill_from_role(role)
                 if skill:
+                    if contributor in busy_contributors:
+                        continue
+
                     role.assignee = (contributor, skill)
                     improved_skill = Skill(name=skill.name, level=skill.level + 1)
 
@@ -174,6 +187,7 @@ if __name__ == "__main__":
 
         remaining_projects_count = len(remaining_projects)
 
-    assigned_sorted_projects = assigned_projects.sort(key=lambda project: project.score)
+    # This breaks the concept of skills "progression".
+    # assigned_sorted_projects = assigned_projects.sort(key=lambda project: project.score)
 
     generate_output_data(assigned_projects)
