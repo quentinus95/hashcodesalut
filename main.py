@@ -1,14 +1,20 @@
 from dataclasses import dataclass, field
 import os
 import sys
-from typing import Any
+from typing import Any, Union
+
+
+@dataclass
+class Contributor:
+    name: Any
+    skills: Any = field(default_factory=list)
 
 
 @dataclass
 class Role:
     name: Any
     level: Any
-    assignee: Any = None
+    assignee: Union[Contributor, None] = None
 
 
 @dataclass
@@ -24,12 +30,6 @@ class Project:
     score: Any
     best_before: Any
     roles: Any = field(default_factory=list)
-
-
-@dataclass
-class Contributor:
-    name: Any
-    skills: Any = field(default_factory=list)
 
 
 def load_input_data(input_file):
@@ -84,8 +84,12 @@ def load_input_data(input_file):
     return contributors, projects
 
 
-# def generate_output_data():
-
+def generate_output_data(ordered_projects):
+    with open('output.txt', 'w') as f:
+        for project in ordered_projects:
+            f.write(project.name + "\n")
+            assignees = " ".join(list(map(lambda the_role: the_role.assignee.name, project.roles)))
+            f.write(assignees + "\n")
 
 if __name__ == "__main__":
 
@@ -94,3 +98,9 @@ if __name__ == "__main__":
 
     contributors, projects = load_input_data(input_file_path)
     print(contributors, projects)
+
+    for project in projects:
+        for role in project.roles:
+            role.assignee = contributors[0]
+
+    generate_output_data(projects)
