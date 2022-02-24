@@ -54,6 +54,7 @@ class Project:
 
         return True
 
+
     def can_be_done_by_contributors(self, contributors: List[Contributor]) -> bool:
         for role in self.roles:
             can_be_done = False
@@ -69,12 +70,17 @@ class Project:
 
         return True
 
+
     def assign_contributors(self, contributors: List[Contributor]):
         for role in self.roles:
             for contributor in contributors:
                 skill = contributor.skill_from_role(role)
                 if skill:
                     role.assignee = (contributor, skill)
+                    improved_skill = Skill(name=skill.name, level=skill.level + 1)
+
+                    contributor.skills[improved_skill.name] = improved_skill
+
                     break
 
 
@@ -143,7 +149,6 @@ def generate_output_data(ordered_projects: List[Project]):
 
 
 if __name__ == "__main__":
-
     input_file_path = sys.argv[1]
     input_file_name = os.path.basename(input_file_path)
 
