@@ -136,6 +136,45 @@ def load_input_data(input_file):
     return contributors, projects
 
 
+def score_projects(schedule):
+    for project in schedule:
+        contributors = []
+        for role in project.roles:
+            contributors += [role.assignee]
+        roles = {role.name: role for role in project.roles}
+        most_skilled_per_role = {role.name: None for role in project.roles}
+        for role in project.roles:
+            for contributor in contributors:
+                skill_level = contributor.get_skill_level(role.name)
+                if not most_skilled_per_role[
+                    role.name
+                ] or skill_level > most_skilled_per_role[role.name].get_skill_level(
+                    role.name
+                ):
+                    most_skilled_per_role[role.name] = contributor
+        # check if there is no assignee with level < skill - 1
+        for role in project.roles:
+            contributor_level = role.assignee.get_skill_level(role.name)
+            if contributor_level < role.level - 1:
+                print(
+                    f"Project {project.name}: skill of assignee for role {role.name} is too low. ({role.level} required, found {contributor_level} for {role.assignee.name})"
+                )
+                return 0
+
+        # check if low level assignee have a mentor
+        for role_name, contributor in most_skilled_per_role.items():
+            if roles[role_name].level - 1 == contributor.get_skill_level(role.name):
+                potential_mentor = most_skilled_per_role[role.name]
+                if (
+                    potential_mentor.get_skill_level(role.name)
+                    >= roles[role_name].level
+                ):
+                    print(f"{potential_mentor} is mentoring {contributor.name}.")
+                else:
+                    print(f"No mentor found for role {role.name}.")
+                    return 0
+
+
 def generate_output_data(ordered_projects: List[Project]):
     with open("output.txt", "w") as f:
         f.write(str(len(ordered_projects)) + "\n")
