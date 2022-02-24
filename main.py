@@ -132,6 +132,8 @@ def load_input_data(input_file):
 
 
 def generate_output_data(ordered_projects: List[Project]):
+    os.remove('output.txt')
+
     with open('output.txt', 'w') as f:
         f.write(str(len(ordered_projects)) + "\n")
         for project in ordered_projects:
@@ -150,13 +152,20 @@ if __name__ == "__main__":
     remaining_projects: List[Project] = projects
     assigned_projects: List[Project] = []
 
+    remaining_projects_count = len(remaining_projects)
     while len(remaining_projects) > 0:
         next_project = remaining_projects.pop()
 
         if next_project.can_be_done_by_contributors(contributors):
             next_project.assign_contributors(contributors)
             assigned_projects.append(next_project)
-        #else:
-        #    remaining_projects.append(next_project)
+        else:
+            remaining_projects.append(next_project)
+
+        # No more assigned projects
+        if remaining_projects_count == len(remaining_projects):
+            break
+
+        remaining_projects_count = len(remaining_projects)
 
     generate_output_data(assigned_projects)
