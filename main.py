@@ -84,7 +84,10 @@ def load_input_data(input_file):
     return contributors, projects
 
 
-# def generate_output_data():
+def score_projects(schedule):
+    for project in schedule:
+        for roles in project.roles:
+            print(role)
 
 
 if __name__ == "__main__":
