@@ -23,6 +23,10 @@ class Contributor:
 
         skill = self.skills[role.name]
         if skill.level < role.level:
+            print(
+                f"{self.name} has skill {skill.name} but is not good enough ({skill.level} < {role.level})!"
+            )
+
             return None
 
         return skill
@@ -64,25 +68,44 @@ class Project:
         return True
 
     def can_be_done_by_contributors(self, contributors: List[Contributor]) -> bool:
+        busy_contributors: List[Contributor] = []
+
         for role in self.roles:
             can_be_done = False
             for contributor in contributors:
                 skill = contributor.skill_from_role(role)
 
                 if skill:
+                    if contributor in busy_contributors:
+                        print(
+                            f"{contributor.name} is already involved in {project.name}; ignoring."
+                        )
+                        continue
+
                     can_be_done = True
+                    busy_contributors.append(contributor)
+                    print(
+                        f"### Electing {contributor} for role {role} on {project.name}"
+                    )
                     break
 
             if not can_be_done:
+                print(f"Could not find a contributor for role {role}!")
+
                 return False
 
         return True
 
     def assign_contributors(self, contributors: List[Contributor]):
+        busy_contributors: List[Contributor] = []
+
         for role in self.roles:
             for contributor in contributors:
                 skill = contributor.skill_from_role(role)
                 if skill:
+                    if contributor in busy_contributors:
+                        continue
+
                     role.assignee = (contributor, skill)
                     improved_skill = Skill(name=skill.name, level=skill.level + 1)
 
@@ -158,22 +181,32 @@ def generate_output_data(ordered_projects: List[Project]):
 
 
 def score_projects(schedule):
+    print("---------------------")
+    print("|      SCORING      |")
+    print("---------------------")
     score = 0
     finish_dates = {project.name: 0 for project in schedule}
     contributors_projects = {}
+    contributors_skills = {}
 
     for project in schedule:
         # find all contributors for this project
         contributors = []
         for role in project.roles:
-            contributors += [role.assignee[0]]
+            contributor = role.assignee[0]
+            contributors += [contributor]
+            if contributor.name not in contributors_skills:
+                contributors_skills[contributor.name] = {
+                    skill_name: skill.level
+                    for skill_name, skill in contributor.skills.items()
+                }
 
         # find most skilled contributor for each skill
         roles = {role.name: role for role in project.roles}
         most_skilled_per_role = {role.name: None for role in project.roles}
         for role in project.roles:
             for contributor in contributors:
-                skill_level = contributor.get_skill_level(role.name)
+                skill_level = contributors_skills[contributor.name][role.name]
                 if not most_skilled_per_role[
                     role.name
                 ] or skill_level > most_skilled_per_role[role.name].get_skill_level(
@@ -249,13 +282,11 @@ if __name__ == "__main__":
 
     remaining_projects_count = len(remaining_projects)
     while len(remaining_projects) > 0:
-        next_project = remaining_projects.pop()
-
-        if next_project.can_be_done_by_contributors(contributors):
-            next_project.assign_contributors(contributors)
-            assigned_projects.append(next_project)
-        else:
-            remaining_projects.append(next_project)
+        for project in remaining_projects:
+            if project.can_be_done_by_contributors(contributors):
+                project.assign_contributors(contributors)
+                assigned_projects.append(project)
+                remaining_projects.remove(project)
 
         # No more assigned projects
         if remaining_projects_count == len(remaining_projects):
@@ -266,3 +297,8 @@ if __name__ == "__main__":
     # generate_output_data(assigned_projects)
     score = score_projects(assigned_projects)
     print(score)
+
+    # This breaks the concept of skills "progression".
+    # assigned_sorted_projects = assigned_projects.sort(key=lambda project: project.score)
+
+    # generate_output_data(assigned_projects)
