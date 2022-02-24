@@ -96,7 +96,7 @@ class Project:
                     busy_contributors.append(contributor)
 
                     if skill.level <= role.level:
-                            contributor.augment_skill(skill.name)
+                        contributor.augment_skill(skill.name)
 
                     break
 
