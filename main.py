@@ -1,8 +1,9 @@
-from asyncio import constants
 from dataclasses import dataclass, field
 import os
 import sys
 from typing import Any, Union, List, Tuple, Dict
+
+OUTPUT_FILE = "output.txt"
 
 
 @dataclass(frozen=True)
@@ -24,11 +25,7 @@ class Contributor:
         if skill.level < role.level:
             return None
 
-    def get_skill_level(self, skill_name):
-        for skill in self.skills:
-            if skill.name == skill_name:
-                return skill.level
-        return 0
+        return skill
 
     def augment_skill(self, skill_name):
         previous_skill = self.skills[skill_name]
@@ -36,6 +33,12 @@ class Contributor:
         self.skills[skill_name] = Skill(
             name=previous_skill.name, level=previous_skill.level + 1
         )
+
+    def get_skill_level(self, skill_name):
+        if skill_name in self.skills:
+            return self.skills[skill_name].level
+        else:
+            return 0
 
 
 @dataclass
@@ -81,6 +84,10 @@ class Project:
                 skill = contributor.skill_from_role(role)
                 if skill:
                     role.assignee = (contributor, skill)
+                    improved_skill = Skill(name=skill.name, level=skill.level + 1)
+
+                    contributor.skills[improved_skill.name] = improved_skill
+
                     break
 
 
@@ -136,11 +143,32 @@ def load_input_data(input_file):
     return contributors, projects
 
 
+def generate_output_data(ordered_projects: List[Project]):
+    if os.path.exists(OUTPUT_FILE):
+        os.remove(OUTPUT_FILE)
+
+    with open(OUTPUT_FILE, "w") as f:
+        f.write(str(len(ordered_projects)) + "\n")
+        for project in ordered_projects:
+            f.write(project.name + "\n")
+            assignees = " ".join(
+                list(map(lambda the_role: the_role.assignee[0].name, project.roles))
+            )
+            f.write(assignees + "\n")
+
+
 def score_projects(schedule):
+    score = 0
+    finish_dates = {project.name: 0 for project in schedule}
+    contributors_projects = {}
+
     for project in schedule:
+        # find all contributors for this project
         contributors = []
         for role in project.roles:
-            contributors += [role.assignee]
+            contributors += [role.assignee[0]]
+
+        # find most skilled contributor for each skill
         roles = {role.name: role for role in project.roles}
         most_skilled_per_role = {role.name: None for role in project.roles}
         for role in project.roles:
@@ -154,7 +182,7 @@ def score_projects(schedule):
                     most_skilled_per_role[role.name] = contributor
         # check if there is no assignee with level < skill - 1
         for role in project.roles:
-            contributor_level = role.assignee.get_skill_level(role.name)
+            contributor_level = role.assignee[0].get_skill_level(role.name)
             if contributor_level < role.level - 1:
                 print(
                     f"Project {project.name}: skill of assignee for role {role.name} is too low. ({role.level} required, found {contributor_level} for {role.assignee.name})"
@@ -174,20 +202,43 @@ def score_projects(schedule):
                     print(f"No mentor found for role {role.name}.")
                     return 0
 
+        # compute the finish date of the project
+        # check if contributor already working
+        finish_date = project.duration
+        max_date_contributors = 0
+        for contributor in contributors:
+            if contributor.name in contributors_projects:
+                last_project = contributors_projects[contributor.name][-1]
+                # print(
+                #     f"Project {project.name}: {contributor.name} is already working on project {last_project} (which will finish at {finish_dates[last_project]})."
+                # )
+                if finish_dates[last_project] > max_date_contributors:
+                    max_date_contributors = finish_dates[last_project]
+        finish_date += max_date_contributors
+        finish_dates[project.name] = finish_date
 
-def generate_output_data(ordered_projects: List[Project]):
-    with open("output.txt", "w") as f:
-        f.write(str(len(ordered_projects)) + "\n")
-        for project in ordered_projects:
-            f.write(project.name + "\n")
-            assignees = " ".join(
-                list(map(lambda the_role: the_role.assignee[0].name, project.roles))
-            )
-            f.write(assignees + "\n")
+        if finish_date < project.best_before:
+            project_score = project.score
+        else:
+            delay = finish_date - project.best_before
+            project_score = max(0, project.score - delay)
+
+        print(
+            f"Project {project.name} will finish at {finish_date} (bbd was {project.best_before}), it earned {project_score} points (out of {project.score})."
+        )
+
+        score += project_score
+
+        # update the list of projects of the contributors
+        for contributor in contributors:
+            if contributor.name not in contributors_projects:
+                contributors_projects[contributor.name] = []
+            contributors_projects[contributor.name] += [project.name]
+
+    return score
 
 
 if __name__ == "__main__":
-
     input_file_path = sys.argv[1]
     input_file_name = os.path.basename(input_file_path)
 
@@ -196,14 +247,22 @@ if __name__ == "__main__":
     remaining_projects: List[Project] = projects
     assigned_projects: List[Project] = []
 
+    remaining_projects_count = len(remaining_projects)
     while len(remaining_projects) > 0:
         next_project = remaining_projects.pop()
 
         if next_project.can_be_done_by_contributors(contributors):
             next_project.assign_contributors(contributors)
             assigned_projects.append(next_project)
-        # else:
-        #    remaining_projects.append(next_project)
+        else:
+            remaining_projects.append(next_project)
+
+        # No more assigned projects
+        if remaining_projects_count == len(remaining_projects):
+            break
+
+        remaining_projects_count = len(remaining_projects)
 
     # generate_output_data(assigned_projects)
-    print(assigned_projects)
+    score = score_projects(assigned_projects)
+    print(score)
