@@ -19,23 +19,23 @@ class Contributor:
 
 @dataclass
 class Role:
-    name: Any
+    name: str
     level: int
     assignee: Union[Contributor, None] = None
 
 
 @dataclass
 class Skill:
-    name: Any
-    level: Any
+    name: str
+    level: int
 
 
 @dataclass
 class Project:
-    name: Any
-    duration: Any
+    name: str
+    duration: int
     score: int
-    best_before: Any
+    best_before: int
     roles: Any = field(default_factory=list)
 
     def is_fully_assigned(self):
