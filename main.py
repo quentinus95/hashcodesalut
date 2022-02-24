@@ -26,6 +26,11 @@ class Contributor:
 
         return skill
 
+    def augment_skill(self, skill_name):
+        previous_skill = self.skills[skill_name]
+
+        self.skills[skill_name] = Skill(name=previous_skill.name, level=previous_skill.level + 1)
+
 
 @dataclass
 class Role:
@@ -132,6 +137,12 @@ if __name__ == "__main__":
     for project in projects:
         for role in project.roles:
             role.assignee = find_assignee_for_project_role(contributors, project, role)
+
+            if not role.assignee:
+                continue
+
+            assignee, skill = role.assignee
+            assignee.augment_skill(skill.name)
 
     fully_assigned_projects = list(filter(lambda the_project: the_project.is_fully_assigned(), projects))
 
