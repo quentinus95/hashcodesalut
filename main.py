@@ -66,6 +66,8 @@ class Project:
                     break
 
             if not can_be_done:
+                print(f"Could not find a contributor for role {role}!")
+
                 return False
 
         return True
