@@ -32,6 +32,8 @@ class Contributor:
     def augment_skill(self, skill_name):
         previous_skill = self.skills[skill_name]
 
+        print(f"Increasing {self.name}'s skill {skill_name} from {previous_skill.level} to {previous_skill.level + 1}")
+
         self.skills[skill_name] = Skill(name=previous_skill.name, level=previous_skill.level + 1)
 
 
@@ -93,9 +95,10 @@ class Project:
                         continue
 
                     role.assignee = (contributor, skill)
+                    busy_contributors.append(contributor)
 
-                    if skill.level >= role.level:
-                        contributor.augment_skill(skill.name)
+                    if skill.level <= role.level:
+                            contributor.augment_skill(skill.name)
 
                     break
 
