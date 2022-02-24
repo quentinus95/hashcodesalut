@@ -162,13 +162,11 @@ if __name__ == "__main__":
 
     remaining_projects_count = len(remaining_projects)
     while len(remaining_projects) > 0:
-        next_project = remaining_projects.pop()
-
-        if next_project.can_be_done_by_contributors(contributors):
-            next_project.assign_contributors(contributors)
-            assigned_projects.append(next_project)
-        else:
-            remaining_projects.append(next_project)
+        for project in remaining_projects:
+            if project.can_be_done_by_contributors(contributors):
+                project.assign_contributors(contributors)
+                assigned_projects.append(project)
+                remaining_projects.remove(project)
 
         # No more assigned projects
         if remaining_projects_count == len(remaining_projects):
