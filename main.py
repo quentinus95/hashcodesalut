@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import os
 import sys
-from typing import Any, Union
+from typing import Any, Union, List
 
 
 @dataclass
@@ -9,11 +9,18 @@ class Contributor:
     name: Any
     skills: Any = field(default_factory=list)
 
+    def skill_from_role(self, role):
+        for skill in self.skills:
+            if skill.name == role.name and skill.level >= role.level:
+                return skill
+
+        return None
+
 
 @dataclass
 class Role:
     name: Any
-    level: Any
+    level: int
     assignee: Union[Contributor, None] = None
 
 
@@ -27,9 +34,17 @@ class Skill:
 class Project:
     name: Any
     duration: Any
-    score: Any
+    score: int
     best_before: Any
     roles: Any = field(default_factory=list)
+
+    def is_fully_assigned(self):
+        for project_role in self.roles:
+            if project_role.assignee is None:
+                return False
+
+        return True
+
 
 
 def load_input_data(input_file):
@@ -84,6 +99,16 @@ def load_input_data(input_file):
     return contributors, projects
 
 
+def find_assignee_for_project_role(contributors: List[Contributor], project: Project, role: Role):
+    for contributor in contributors:
+        skill = contributor.skill_from_role(role)
+
+        if skill:
+            return contributor
+
+    return None
+
+
 def generate_output_data(ordered_projects):
     with open('output.txt', 'w') as f:
         f.write(str(len(ordered_projects)) + "\n")
@@ -98,10 +123,11 @@ if __name__ == "__main__":
     input_file_name = os.path.basename(input_file_path)
 
     contributors, projects = load_input_data(input_file_path)
-    print(contributors, projects)
 
     for project in projects:
         for role in project.roles:
-            role.assignee = contributors[0]
+            role.assignee = find_assignee_for_project_role(contributors, project, role)
 
-    generate_output_data(projects)
+    fully_assigned_projects = list(filter(lambda the_project: the_project.is_fully_assigned(), projects))
+
+    generate_output_data(fully_assigned_projects)
