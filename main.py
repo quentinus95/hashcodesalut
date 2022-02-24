@@ -54,6 +54,29 @@ class Project:
 
         return True
 
+    def can_be_done_by_contributors(self, contributors: List[Contributor]) -> bool:
+        for role in self.roles:
+            can_be_done = False
+            for contributor in contributors:
+                skill = contributor.skill_from_role(role)
+
+                if skill:
+                    can_be_done = True
+                    break
+
+            if not can_be_done:
+                return False
+
+        return True
+
+    def assign_contributors(self, contributors: List[Contributor]):
+        for role in self.roles:
+            for contributor in contributors:
+                skill = contributor.skill_from_role(role)
+                if skill:
+                    role.assignee = (contributor, skill)
+                    break
+
 
 
 def load_input_data(input_file):
@@ -108,16 +131,6 @@ def load_input_data(input_file):
     return contributors, projects
 
 
-def find_assignee_for_project_role(contributors: List[Contributor], project: Project, role: Role) -> Union[Tuple[Contributor, Skill], None]:
-    for contributor in contributors:
-        skill = contributor.skill_from_role(role)
-
-        if skill:
-            return contributor, skill
-
-    return None
-
-
 def generate_output_data(ordered_projects: List[Project]):
     with open('output.txt', 'w') as f:
         f.write(str(len(ordered_projects)) + "\n")
@@ -134,16 +147,16 @@ if __name__ == "__main__":
 
     contributors, projects = load_input_data(input_file_path)
 
-    for project in projects:
-        for role in project.roles:
-            role.assignee = find_assignee_for_project_role(contributors, project, role)
+    remaining_projects: List[Project] = projects
+    assigned_projects: List[Project] = []
 
-            if not role.assignee:
-                continue
+    while len(remaining_projects) > 0:
+        next_project = remaining_projects.pop()
 
-            assignee, skill = role.assignee
-            assignee.augment_skill(skill.name)
+        if next_project.can_be_done_by_contributors(contributors):
+            next_project.assign_contributors(contributors)
+            assigned_projects.append(next_project)
+        #else:
+        #    remaining_projects.append(next_project)
 
-    fully_assigned_projects = list(filter(lambda the_project: the_project.is_fully_assigned(), projects))
-
-    generate_output_data(fully_assigned_projects)
+    generate_output_data(assigned_projects)
