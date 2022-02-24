@@ -1,33 +1,37 @@
 from dataclasses import dataclass, field
 import os
 import sys
-from typing import Any, Union, List
+from typing import Any, Union, List, Tuple, Dict
+
+
+
+@dataclass(frozen=True)
+class Skill:
+    name: str
+    level: int
 
 
 @dataclass
 class Contributor:
     name: Any
-    skills: Any = field(default_factory=list)
+    skills: Dict[str, Skill] = field(default_factory=dict)
 
-    def skill_from_role(self, role):
-        for skill in self.skills:
-            if skill.name == role.name and skill.level >= role.level:
-                return skill
+    def skill_from_role(self, role) -> Union[Skill, None]:
+        if role.name not in self.skills:
+            return None
 
-        return None
+        skill = self.skills[role.name]
+        if skill.level < role.level:
+            return None
+
+        return skill
 
 
 @dataclass
 class Role:
     name: str
     level: int
-    assignee: Union[Contributor, None] = None
-
-
-@dataclass
-class Skill:
-    name: str
-    level: int
+    assignee: Union[Tuple[Contributor, Skill], None] = None
 
 
 @dataclass
@@ -36,7 +40,7 @@ class Project:
     duration: int
     score: int
     best_before: int
-    roles: Any = field(default_factory=list)
+    roles: List[Role] = field(default_factory=list)
 
     def is_fully_assigned(self):
         for project_role in self.roles:
@@ -66,7 +70,7 @@ def load_input_data(input_file):
             skill_name, skill_lvl = lines[line_i].split(" ")
             skill_lvl = int(skill_lvl)
             skill = Skill(name=skill_name, level=skill_lvl)
-            contributor.skills.append(skill)
+            contributor.skills[skill.name] = skill
             line_i += 1
         contributors += [contributor]
 
@@ -99,23 +103,24 @@ def load_input_data(input_file):
     return contributors, projects
 
 
-def find_assignee_for_project_role(contributors: List[Contributor], project: Project, role: Role):
+def find_assignee_for_project_role(contributors: List[Contributor], project: Project, role: Role) -> Union[Tuple[Contributor, Skill], None]:
     for contributor in contributors:
         skill = contributor.skill_from_role(role)
 
         if skill:
-            return contributor
+            return contributor, skill
 
     return None
 
 
-def generate_output_data(ordered_projects):
+def generate_output_data(ordered_projects: List[Project]):
     with open('output.txt', 'w') as f:
         f.write(str(len(ordered_projects)) + "\n")
         for project in ordered_projects:
             f.write(project.name + "\n")
-            assignees = " ".join(list(map(lambda the_role: the_role.assignee.name, project.roles)))
+            assignees = " ".join(list(map(lambda the_role: the_role.assignee[0].name, project.roles)))
             f.write(assignees + "\n")
+
 
 if __name__ == "__main__":
 
